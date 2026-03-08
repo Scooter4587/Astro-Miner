@@ -1,102 +1,146 @@
-name: Post changelog to Discord
+name: Push changelog to Discord
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
     paths:
       - "CHANGELOG.md"
+      - ".github/workflows/changelog_to_discord.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  post-changelog:
+  send-discord:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v5
 
-      - name: Post latest changelog entry to Discord
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      - name: Extract latest block
+        id: extract
+        shell: bash
         run: |
-          python <<'PY'
-          import json
-          import os
-          import re
-          import urllib.request
-          from pathlib import Path
-          from datetime import datetime, timezone
+          set -euo pipefail
 
-          webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
-          if not webhook_url:
-              raise SystemExit("Missing DISCORD_WEBHOOK_URL secret")
+          awk '
+            BEGIN {in_section=0}
+            /^## / {
+              if (in_section==0) {in_section=1; print; next}
+              else {exit}
+            }
+            {
+              if (in_section==1) print
+            }
+          ' CHANGELOG.md > latest.txt
 
-          changelog_path = Path("CHANGELOG.md")
-          if not changelog_path.exists():
-              raise SystemExit("CHANGELOG.md not found")
+          if ! [ -s latest.txt ]; then
+            echo "ERROR: No release block found in CHANGELOG.md" >&2
+            exit 1
+          fi
 
-          text = changelog_path.read_text(encoding="utf-8")
+          header_line="$(head -n 1 latest.txt)"
+          version="$(echo "$header_line" | sed -E 's/^##[[:space:]]+(.+)$/\1/')"
 
-          # First release block: from first ## heading until next ## heading or EOF
-          match = re.search(r"^##\s+(.+?)\n(.*?)(?=^##\s+|\Z)", text, re.MULTILINE | re.DOTALL)
-          if not match:
-              raise SystemExit("No release section found in CHANGELOG.md")
+          tail -n +2 latest.txt > body.txt
 
-          version = match.group(1).strip()
-          body = match.group(2).strip()
+          rm -f Added.txt Changed.txt Fixed.txt Notes.txt Released.txt || true
+          awk '
+            BEGIN {sec=""}
+            { gsub(/\r$/,"") }
+            /^### Added$/    {sec="Added"; next}
+            /^### Changed$/  {sec="Changed"; next}
+            /^### Fixed$/    {sec="Fixed"; next}
+            /^### Notes$/    {sec="Notes"; next}
+            /^### Released$/ {sec="Released"; next}
+            NF==0 {next}
+            sec!="" {print $0 >> (sec".txt")}
+          ' body.txt
 
-          def extract_section(name: str) -> str:
-              pattern = rf"^###\s+{re.escape(name)}\n(.*?)(?=^###\s+|\Z)"
-              m = re.search(pattern, body, re.MULTILINE | re.DOTALL)
-              if not m:
-                  return ""
-              lines = [line.rstrip() for line in m.group(1).strip().splitlines() if line.strip()]
-              value = "\n".join(lines)
-              return value[:1024]
+          ADDED="$(cat Added.txt 2>/dev/null || true)"
+          CHANGED="$(cat Changed.txt 2>/dev/null || true)"
+          FIXED="$(cat Fixed.txt 2>/dev/null || true)"
+          NOTES="$(cat Notes.txt 2>/dev/null || true)"
+          RELEASED="$(cat Released.txt 2>/dev/null || true)"
 
-          added = extract_section("Added")
-          changed = extract_section("Changed")
-          fixed = extract_section("Fixed")
-          notes = extract_section("Notes")
-          released = extract_section("Released")
+          {
+            echo "version=$version"
+            echo "released<<EOF"
+            echo "$RELEASED"
+            echo "EOF"
+            echo "added<<EOF"
+            echo "$ADDED"
+            echo "EOF"
+            echo "changed<<EOF"
+            echo "$CHANGED"
+            echo "EOF"
+            echo "fixed<<EOF"
+            echo "$FIXED"
+            echo "EOF"
+            echo "notes<<EOF"
+            echo "$NOTES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
-          fields = []
-          if added:
-              fields.append({"name": "Added", "value": added, "inline": False})
-          if changed:
-              fields.append({"name": "Changed", "value": changed, "inline": False})
-          if fixed:
-              fields.append({"name": "Fixed", "value": fixed, "inline": False})
-          if notes:
-              fields.append({"name": "Notes", "value": notes, "inline": False})
+      - name: Post to Discord
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          VERSION:     ${{ steps.extract.outputs.version }}
+          RELEASED:    ${{ steps.extract.outputs.released }}
+          ADDED:       ${{ steps.extract.outputs.added }}
+          CHANGED:     ${{ steps.extract.outputs.changed }}
+          FIXED:       ${{ steps.extract.outputs.fixed }}
+          NOTES:       ${{ steps.extract.outputs.notes }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y >/dev/null 2>&1 || true
+          sudo apt-get install -y jq >/dev/null 2>&1 || true
 
-          released_text = released if released else datetime.now(timezone.utc).strftime("%Y-%m-%d")
+          WEBHOOK_URL="$(printf '%s' "$WEBHOOK_URL" | tr -d '\r\n')"
 
-          payload = {
-              "username": "AstroMiner Bot",
-              "embeds": [
-                  {
-                      "title": f"AstroMiner – {version}",
-                      "color": 3447003,
-                      "fields": fields,
-                      "footer": {"text": f"Released {released_text}"},
-                      "timestamp": datetime.now(timezone.utc).isoformat()
-                  }
-              ]
+          FIELDS='[]'
+          add_field () {
+            local name="$1"
+            local val="$2"
+            if [ -n "${val// /}" ]; then
+              FIELDS="$(echo "$FIELDS" | jq --arg n "$name" --arg v "$val" '. + [{name:$n, value:$v, inline:false}]')"
+            fi
           }
 
-          data = json.dumps(payload).encode("utf-8")
-          req = urllib.request.Request(
-              webhook_url,
-              data=data,
-              headers={"Content-Type": "application/json"},
-              method="POST"
-          )
+          add_field "Added"   "$ADDED"
+          add_field "Changed" "$CHANGED"
+          add_field "Fixed"   "$FIXED"
+          add_field "Notes"   "$NOTES"
 
-          with urllib.request.urlopen(req) as response:
-              print("Discord webhook response:", response.status)
-          PY
+          if [ -z "${RELEASED// /}" ]; then
+            RELEASED="$(date -u +%F)"
+          fi
+
+          PAYLOAD="$(jq -n \
+            --arg title "AstroMiner – ${VERSION}" \
+            --arg released "${RELEASED}" \
+            --argjson fields "${FIELDS}" \
+            '{
+              embeds: [{
+                title: $title,
+                color: 3447003,
+                fields: $fields,
+                footer: { text: ("Released " + $released) }
+              }]
+            }')"
+
+          RESP="$(curl -sS -w '\n%{http_code}' \
+                 -H 'Content-Type: application/json' \
+                 -X POST \
+                 -d "$PAYLOAD" \
+                 "$WEBHOOK_URL")"
+
+          HTTP_CODE="$(printf '%s' "$RESP" | tail -n1)"
+          BODY="$(printf '%s' "$RESP" | sed '$d')"
+
+          echo "Discord HTTP code: $HTTP_CODE"
+          echo "Discord body: $BODY"
+
+          test "$HTTP_CODE" = "204" -o "$HTTP_CODE" = "200"

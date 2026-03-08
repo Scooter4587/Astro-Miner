@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.11
+
+### Added
+- Initial Discord Setup
+
+### Released
+2026-03-08
+
 ## 0.0.1
 
 ### Added
