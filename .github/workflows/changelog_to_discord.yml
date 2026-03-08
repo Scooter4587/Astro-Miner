@@ -1,0 +1,102 @@
+name: Post changelog to Discord
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "CHANGELOG.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  post-changelog:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Post latest changelog entry to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python <<'PY'
+          import json
+          import os
+          import re
+          import urllib.request
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
+          if not webhook_url:
+              raise SystemExit("Missing DISCORD_WEBHOOK_URL secret")
+
+          changelog_path = Path("CHANGELOG.md")
+          if not changelog_path.exists():
+              raise SystemExit("CHANGELOG.md not found")
+
+          text = changelog_path.read_text(encoding="utf-8")
+
+          # First release block: from first ## heading until next ## heading or EOF
+          match = re.search(r"^##\s+(.+?)\n(.*?)(?=^##\s+|\Z)", text, re.MULTILINE | re.DOTALL)
+          if not match:
+              raise SystemExit("No release section found in CHANGELOG.md")
+
+          version = match.group(1).strip()
+          body = match.group(2).strip()
+
+          def extract_section(name: str) -> str:
+              pattern = rf"^###\s+{re.escape(name)}\n(.*?)(?=^###\s+|\Z)"
+              m = re.search(pattern, body, re.MULTILINE | re.DOTALL)
+              if not m:
+                  return ""
+              lines = [line.rstrip() for line in m.group(1).strip().splitlines() if line.strip()]
+              value = "\n".join(lines)
+              return value[:1024]
+
+          added = extract_section("Added")
+          changed = extract_section("Changed")
+          fixed = extract_section("Fixed")
+          notes = extract_section("Notes")
+          released = extract_section("Released")
+
+          fields = []
+          if added:
+              fields.append({"name": "Added", "value": added, "inline": False})
+          if changed:
+              fields.append({"name": "Changed", "value": changed, "inline": False})
+          if fixed:
+              fields.append({"name": "Fixed", "value": fixed, "inline": False})
+          if notes:
+              fields.append({"name": "Notes", "value": notes, "inline": False})
+
+          released_text = released if released else datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+          payload = {
+              "username": "AstroMiner Bot",
+              "embeds": [
+                  {
+                      "title": f"AstroMiner – {version}",
+                      "color": 3447003,
+                      "fields": fields,
+                      "footer": {"text": f"Released {released_text}"},
+                      "timestamp": datetime.now(timezone.utc).isoformat()
+                  }
+              ]
+          }
+
+          data = json.dumps(payload).encode("utf-8")
+          req = urllib.request.Request(
+              webhook_url,
+              data=data,
+              headers={"Content-Type": "application/json"},
+              method="POST"
+          )
+
+          with urllib.request.urlopen(req) as response:
+              print("Discord webhook response:", response.status)
+          PY
