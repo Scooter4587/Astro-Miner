@@ -1,5 +1,11 @@
 # Changelog
 
+
+## [0.0.12] - 2026-03-10
+
+### Added
+- ROADMAP.md - Full Roadmap plan
+
 ## 0.0.11
 
 ### Added
