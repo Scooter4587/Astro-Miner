@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://bjhoemqcjn4p7"]
+
+[ext_resource type="Script" uid="uid://b7f3qf0hqt3tp" path="res://scripts/main/Main.cs" id="1_nha0i"]
+[ext_resource type="PackedScene" uid="uid://cpsb44ci7yjyj" path="res://scenes/ship/Ship.tscn" id="1_u1xfj"]
+
+[sub_resource type="CSharpScript" id="CSharpScript_nha0i"]
+script/source = "using Godot;
+using System;
+
+public partial class BackgroundRoot : Node2D
+{
+}
+"
+
+[node name="Main" type="Node" unique_id=480333861]
+script = ExtResource("1_nha0i")
+
+[node name="BackgroundRoot" type="Node2D" parent="." unique_id=1395111361]
+script = SubResource("CSharpScript_nha0i")
+
+[node name="World" type="Node2D" parent="." unique_id=2049089746]
+
+[node name="GameplayRoot" type="Node2D" parent="." unique_id=2126569954]
+
+[node name="Ship" parent="GameplayRoot" unique_id=1305257897 instance=ExtResource("1_u1xfj")]
+
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=2101199249]
+
+[node name="DebugLayer" type="CanvasLayer" parent="." unique_id=1754762748]

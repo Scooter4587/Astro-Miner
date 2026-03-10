@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://cpsb44ci7yjyj"]
+
+[ext_resource type="Script" uid="uid://cij43g6nfags" path="res://scripts/ship/Ship.cs" id="1_dkinh"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2l2hl"]
+
+[node name="Ship" type="CharacterBody2D" unique_id=1305257897]
+script = ExtResource("1_dkinh")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=731551843]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1772545438]
+shape = SubResource("RectangleShape2D_2l2hl")
+
+[node name="DrillPoint" type="Marker2D" parent="." unique_id=1086460124]
