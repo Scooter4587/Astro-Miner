@@ -2,6 +2,9 @@
 
 [ext_resource type="Script" uid="uid://b7f3qf0hqt3tp" path="res://scripts/main/Main.cs" id="1_nha0i"]
 [ext_resource type="PackedScene" uid="uid://cpsb44ci7yjyj" path="res://scenes/ship/Ship.tscn" id="1_u1xfj"]
+[ext_resource type="Texture2D" uid="uid://cjfxpwdhn4buh" path="res://assets/backgrounds/space_bg.png" id="2_dc040"]
+[ext_resource type="Texture2D" uid="uid://xnnpaooacgwv" path="res://assets/backgrounds/stars_far.png" id="3_1rhdn"]
+[ext_resource type="Texture2D" uid="uid://ctqbuwxpbbyrk" path="res://assets/backgrounds/stars_near.png" id="4_sjxhf"]
 
 [sub_resource type="CSharpScript" id="CSharpScript_nha0i"]
 script/source = "using Godot;
@@ -17,6 +20,29 @@ script = ExtResource("1_nha0i")
 
 [node name="BackgroundRoot" type="Node2D" parent="." unique_id=1395111361]
 script = SubResource("CSharpScript_nha0i")
+
+[node name="SpaceBg" type="Sprite2D" parent="BackgroundRoot" unique_id=269993893]
+z_index = -30
+texture = ExtResource("2_dc040")
+centered = false
+
+[node name="StarsFar" type="Parallax2D" parent="BackgroundRoot" unique_id=686838416]
+scroll_scale = Vector2(0.15, 0.15)
+repeat_size = Vector2(1920, 1080)
+
+[node name="StarsFarsprite" type="Sprite2D" parent="BackgroundRoot/StarsFar" unique_id=406436651]
+z_index = -20
+texture = ExtResource("3_1rhdn")
+centered = false
+
+[node name="StarsNear" type="Parallax2D" parent="BackgroundRoot" unique_id=1795292469]
+scroll_scale = Vector2(0.35, 0.35)
+repeat_size = Vector2(1920, 1080)
+
+[node name="StarsNearSprite" type="Sprite2D" parent="BackgroundRoot/StarsNear" unique_id=232189764]
+z_index = -10
+texture = ExtResource("4_sjxhf")
+centered = false
 
 [node name="World" type="Node2D" parent="." unique_id=2049089746]
 

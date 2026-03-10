@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.131] - 2026-03-11
+
+### Added
+- Space background placeholder added
+- Far star layer added
+- Near star layer added
+- Parallax2D background structure prepared for future movement testing
+
+### Changed
+- Background scene structure expanded for readable movement feedback
+
 
 ## [0.0.13] - 2026-03-10
 
