@@ -2,13 +2,19 @@
 
 [ext_resource type="Script" uid="uid://cij43g6nfags" path="res://scripts/ship/Ship.cs" id="1_dkinh"]
 [ext_resource type="Texture2D" uid="uid://bgdqe4rapwcn4" path="res://assets/ships/ship_idle.png" id="2_dqc1n"]
+[ext_resource type="Resource" uid="uid://5nlk05nc8rna" path="res://data/config/ship_config_default.tres" id="2_xfxds"]
+[ext_resource type="Texture2D" uid="uid://dp5y3euuj24vt" path="res://assets/ships/ship_thrust.png" id="3_ob0mf"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ob0mf"]
 radius = 18.0
 height = 80.0
 
 [node name="Ship" type="CharacterBody2D" unique_id=1305257897]
+motion_mode = 1
 script = ExtResource("1_dkinh")
+Config = ExtResource("2_xfxds")
+IdleTexture = ExtResource("2_dqc1n")
+ThrustTexture = ExtResource("3_ob0mf")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=731551843]
 scale = Vector2(0.2, 0.2)
@@ -22,3 +28,5 @@ shape = SubResource("CapsuleShape2D_ob0mf")
 
 [node name="DrillPoint" type="Marker2D" parent="." unique_id=1086460124]
 position = Vector2(55, 0)
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1858654876]

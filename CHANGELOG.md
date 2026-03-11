@@ -1,6 +1,27 @@
 # Changelog
 
 
+## [0.0.14] - First Ship Movement
+
+### Added
+- `ShipConfig` resource as one source of truth for ship movement values
+- realistic and arcade flight mode support
+- desired-direction ship movement for `move_left`, `move_right`, `move_up`, and `move_down`
+- `full_stop` input support
+- ship-follow camera setup for movement testing
+
+### Changed
+- ship movement now uses desired heading instead of direct manual thrust-only steering
+- realistic flight mode now waits for alignment before enabling main thrust
+- arcade flight mode keeps thrust active during direction changes
+- full stop behavior tuned to feel closer to auxiliary thrusters
+- ship movement feel adjusted to preserve inertia during rotation in realistic mode
+
+### Fixed
+- broken script reference on `BackgroundRoot`
+- invalid input action usage in `Ship.cs`
+- main scene startup issues caused by incorrect C# script attachment
+
 ## [0.0.132] - 2026-03-11
 
 ### Added
