@@ -1,5 +1,21 @@
 # Changelog
 
+
+## [0.0.132] - 2026-03-11
+
+### Added
+- `Ship.tscn` placeholder scene
+- placeholder ship sprite with idle variant
+- thrust sprite variant for engine-on visual
+- `DrillPoint` marker
+- basic `Ship.cs` skeleton
+- exported variables for visual, movement, and debug tuning
+- ship instance added to main scene
+
+### Changed
+- ship collision shape aligned to the main hull body
+- ship visual setup prepared for idle/thrust texture switching
+
 ## [0.0.131] - 2026-03-11
 
 ### Added

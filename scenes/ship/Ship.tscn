@@ -1,15 +1,24 @@
 [gd_scene format=3 uid="uid://cpsb44ci7yjyj"]
 
 [ext_resource type="Script" uid="uid://cij43g6nfags" path="res://scripts/ship/Ship.cs" id="1_dkinh"]
+[ext_resource type="Texture2D" uid="uid://bgdqe4rapwcn4" path="res://assets/ships/ship_idle.png" id="2_dqc1n"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_2l2hl"]
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ob0mf"]
+radius = 18.0
+height = 80.0
 
 [node name="Ship" type="CharacterBody2D" unique_id=1305257897]
 script = ExtResource("1_dkinh")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=731551843]
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("2_dqc1n")
+flip_h = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1772545438]
-shape = SubResource("RectangleShape2D_2l2hl")
+position = Vector2(5, 0)
+rotation = 1.5707964
+shape = SubResource("CapsuleShape2D_ob0mf")
 
 [node name="DrillPoint" type="Marker2D" parent="." unique_id=1086460124]
+position = Vector2(55, 0)
