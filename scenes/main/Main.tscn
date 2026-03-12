@@ -1,19 +1,20 @@
 [gd_scene format=3 uid="uid://ct2htir3eerq7"]
 
-[ext_resource type="Script" uid="uid://b7f3qf0hqt3tp" path="res://scripts/main/Main.cs" id="1_nha0i"]
-[ext_resource type="PackedScene" uid="uid://cpsb44ci7yjyj" path="res://scenes/ship/Ship.tscn" id="1_u1xfj"]
-[ext_resource type="Texture2D" uid="uid://cjfxpwdhn4buh" path="res://assets/backgrounds/space_bg.png" id="2_dc040"]
-[ext_resource type="Texture2D" uid="uid://xnnpaooacgwv" path="res://assets/backgrounds/stars_far.png" id="3_1rhdn"]
-[ext_resource type="Texture2D" uid="uid://ctqbuwxpbbyrk" path="res://assets/backgrounds/stars_near.png" id="4_sjxhf"]
+[ext_resource type="Script" uid="uid://b7f3qf0hqt3tp" path="res://scripts/main/Main.cs" id="1_dc040"]
+[ext_resource type="Texture2D" uid="uid://cjfxpwdhn4buh" path="res://assets/backgrounds/space_bg.png" id="2_1rhdn"]
+[ext_resource type="Texture2D" uid="uid://xnnpaooacgwv" path="res://assets/backgrounds/stars_far.png" id="3_sjxhf"]
+[ext_resource type="Texture2D" uid="uid://ctqbuwxpbbyrk" path="res://assets/backgrounds/stars_near.png" id="4_ko0rf"]
+[ext_resource type="PackedScene" uid="uid://cpsb44ci7yjyj" path="res://scenes/ship/Ship.tscn" id="5_ostsq"]
+[ext_resource type="PackedScene" uid="uid://clv54qiwcc0yh" path="res://scenes/ui/DebugHud.tscn" id="6_1rhdn"]
 
 [node name="Main" type="Node" unique_id=480333861]
-script = ExtResource("1_nha0i")
+script = ExtResource("1_dc040")
 
 [node name="BackgroundRoot" type="Node2D" parent="." unique_id=1395111361]
 
 [node name="SpaceBg" type="Sprite2D" parent="BackgroundRoot" unique_id=269993893]
 z_index = -30
-texture = ExtResource("2_dc040")
+texture = ExtResource("2_1rhdn")
 centered = false
 
 [node name="StarsFar" type="Parallax2D" parent="BackgroundRoot" unique_id=686838416]
@@ -22,7 +23,7 @@ repeat_size = Vector2(1920, 1080)
 
 [node name="StarsFarsprite" type="Sprite2D" parent="BackgroundRoot/StarsFar" unique_id=406436651]
 z_index = -20
-texture = ExtResource("3_1rhdn")
+texture = ExtResource("3_sjxhf")
 centered = false
 
 [node name="StarsNear" type="Parallax2D" parent="BackgroundRoot" unique_id=1795292469]
@@ -31,15 +32,18 @@ repeat_size = Vector2(1920, 1080)
 
 [node name="StarsNearSprite" type="Sprite2D" parent="BackgroundRoot/StarsNear" unique_id=232189764]
 z_index = -10
-texture = ExtResource("4_sjxhf")
+texture = ExtResource("4_ko0rf")
 centered = false
 
 [node name="World" type="Node2D" parent="." unique_id=2049089746]
 
 [node name="GameplayRoot" type="Node2D" parent="." unique_id=2126569954]
 
-[node name="Ship" parent="GameplayRoot" unique_id=1305257897 instance=ExtResource("1_u1xfj")]
+[node name="Ship" parent="GameplayRoot" unique_id=1305257897 instance=ExtResource("5_ostsq")]
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=2101199249]
 
 [node name="DebugLayer" type="CanvasLayer" parent="." unique_id=1754762748]
+
+[node name="DebugHud" parent="." unique_id=1643613072 instance=ExtResource("6_1rhdn")]
+ShipPath = NodePath("../GameplayRoot/Ship")

@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://bgdqe4rapwcn4" path="res://assets/ships/ship_idle.png" id="2_dqc1n"]
 [ext_resource type="Resource" uid="uid://5nlk05nc8rna" path="res://data/config/ship_config_default.tres" id="2_xfxds"]
 [ext_resource type="Texture2D" uid="uid://dp5y3euuj24vt" path="res://assets/ships/ship_thrust.png" id="3_ob0mf"]
+[ext_resource type="Script" uid="uid://qww37o6b10gs" path="res://scripts/ship/ShipCameraController.cs" id="5_qos36"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ob0mf"]
 radius = 18.0
@@ -30,3 +31,6 @@ shape = SubResource("CapsuleShape2D_ob0mf")
 position = Vector2(55, 0)
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1858654876]
+script = ExtResource("5_qos36")
+UsePositionSmoothing = false
+PositionSmoothingSpeedValue = 0.0

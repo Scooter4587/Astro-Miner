@@ -28,6 +28,7 @@ public partial class Ship : CharacterBody2D
     private bool _isArcadeMode;
 
     public float CurrentSpeedMps => Velocity.Length();
+    public bool IsArcadeMode => _isArcadeMode;
 
     public override void _Ready()
     {

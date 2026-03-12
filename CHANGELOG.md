@@ -1,6 +1,26 @@
 # Changelog
 
 
+## [0.0.15] - Camera and debug HUD
+
+### Added
+- debug HUD with speed readout
+- debug HUD with flight mode readout
+- debug HUD with velocity vector readout
+- debug HUD with zoom readout
+- mouse wheel camera zoom controls
+- min/max zoom limits for test camera
+
+### Changed
+- camera setup refined for movement testing
+- debug HUD moved under main scene for cleaner structure
+- camera smoothing temporarily disabled for clearer movement readout
+
+### Fixed
+- missing debug HUD label references
+- debug HUD null reference spam during runtime
+- camera shake caused by current smoothing setup during acceleration
+
 ## [0.0.14] - First Ship Movement
 
 ### Added
