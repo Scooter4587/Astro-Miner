@@ -1,6 +1,21 @@
 # Changelog
 
 
+## [0.0.16] - Test Asteroid
+
+### Added
+- `AsteroidTest.tscn` test asteroid scene
+- `AsteroidLayer` using `TileMapLayer`
+- `asteroid_test_tileset.tres`
+- first asteroid collision tile
+- test asteroid placed into main scene
+
+### Changed
+- main test scene now includes first asteroid collision slice
+
+### Fixed
+- ship can now physically collide with a test asteroid body
+
 ## [0.0.15] - Camera and debug HUD
 
 ### Added

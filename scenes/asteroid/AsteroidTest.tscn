@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://cycslvxay4qpe"]
+
+[ext_resource type="TileSet" uid="uid://mqw7ae7f41ns" path="res://assets/asteroids/asteroid_test_tileset.tres" id="1_twvqc"]
+
+[node name="AsteroidTest" type="Node2D" unique_id=1888460075]
+
+[node name="AsteroidLayer" type="TileMapLayer" parent="." unique_id=1532810322]
+tile_map_data = PackedByteArray(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+tile_set = ExtResource("1_twvqc")

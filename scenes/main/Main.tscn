@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://ctqbuwxpbbyrk" path="res://assets/backgrounds/stars_near.png" id="4_ko0rf"]
 [ext_resource type="PackedScene" uid="uid://cpsb44ci7yjyj" path="res://scenes/ship/Ship.tscn" id="5_ostsq"]
 [ext_resource type="PackedScene" uid="uid://clv54qiwcc0yh" path="res://scenes/ui/DebugHud.tscn" id="6_1rhdn"]
+[ext_resource type="PackedScene" uid="uid://cycslvxay4qpe" path="res://scenes/asteroid/AsteroidTest.tscn" id="6_sjxhf"]
 
 [node name="Main" type="Node" unique_id=480333861]
 script = ExtResource("1_dc040")
@@ -40,6 +41,10 @@ centered = false
 [node name="GameplayRoot" type="Node2D" parent="." unique_id=2126569954]
 
 [node name="Ship" parent="GameplayRoot" unique_id=1305257897 instance=ExtResource("5_ostsq")]
+position = Vector2(184, 571)
+
+[node name="AsteroidTest" parent="GameplayRoot" unique_id=1888460075 instance=ExtResource("6_sjxhf")]
+position = Vector2(622, 256)
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=2101199249]
 

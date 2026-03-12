@@ -1,0 +1,15 @@
+[gd_resource type="TileSet" format=3 uid="uid://mqw7ae7f41ns"]
+
+[ext_resource type="Texture2D" uid="uid://7kfvuk3alsbc" path="res://assets/asteroids/asteroid_test.png.png" id="1_fw2x7"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_erwdq"]
+resource_name = "Asteroid Test"
+texture = ExtResource("1_fw2x7")
+texture_region_size = Vector2i(700, 640)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-103, 246, -120, 252, -172, 206, -217, 183, -241, 138, -270, 89, -257, 61, -298, -30, -227, -189, -149, -210, -108, -250, -57, -261, -10, -258, 10, -285, 98, -281, 149, -243, 161, -208, 191, -203, 214, -162, 252, -142, 261, -96, 280, -82, 282, -59, 304, -47, 309, 0, 282, 30, 296, 57, 287, 87, 273, 104, 262, 136, 243, 147, 234, 178, 193, 200, 134, 232, 92, 262, 60, 264, 24, 286, -35, 286)
+
+[resource]
+tile_size = Vector2i(640, 640)
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_erwdq")
