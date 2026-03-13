@@ -25,4 +25,14 @@ public partial class ShipConfig : Resource
 
     [ExportGroup("UI")]
     [Export] public bool ShowSpeedInMps { get; set; } = true;
+
+    [ExportGroup("Collision")]
+    [Export] public float ImpactTangentPreserve { get; set; } = 0.98f;
+    [Export] public float CrashSpeedThresholdMps { get; set; } = 150.0f;
+    [Export] public float CrashExtraDamping { get; set; } = 0.77f;
+
+    [Export] public float FlightHeadOnDotThreshold { get; set; } = 0.65f;
+    [Export] public float FlightBounceMultiplier { get; set; } = 0.45f;
+    [Export] public float FlightBounceCooldownSec { get; set; } = 0.14f;
+    [Export] public float FlightBounceMinImpactSpeedMps { get; set; } = 70.0f;
 }

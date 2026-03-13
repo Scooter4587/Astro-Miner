@@ -6,12 +6,12 @@
 [ext_resource type="Texture2D" uid="uid://dp5y3euuj24vt" path="res://assets/ships/ship_thrust.png" id="3_ob0mf"]
 [ext_resource type="Script" uid="uid://qww37o6b10gs" path="res://scripts/ship/ShipCameraController.cs" id="5_qos36"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ob0mf"]
-radius = 18.0
-height = 80.0
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_qos36"]
+radius = 15.0
+height = 84.0
 
 [node name="Ship" type="CharacterBody2D" unique_id=1305257897]
-motion_mode = 1
+safe_margin = 0.8
 script = ExtResource("1_dkinh")
 Config = ExtResource("2_xfxds")
 IdleTexture = ExtResource("2_dqc1n")
@@ -23,9 +23,10 @@ texture = ExtResource("2_dqc1n")
 flip_h = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1772545438]
-position = Vector2(5, 0)
+position = Vector2(8, 0)
 rotation = 1.5707964
-shape = SubResource("CapsuleShape2D_ob0mf")
+shape = SubResource("CapsuleShape2D_qos36")
+one_way_collision_margin = 1.2
 
 [node name="DrillPoint" type="Marker2D" parent="." unique_id=1086460124]
 position = Vector2(55, 0)

@@ -1,6 +1,24 @@
 # Changelog
 
 
+## [0.0.17] - Flight Collision baseline
+
+### Added
+- collision tuning values added to `ShipConfig` for flight impact handling
+- hybrid collision response in `Ship.cs` combining slide/scrape damping with controlled head-on rebound
+- flight bounce cooldown timer to prevent repeated rebound spam during contact
+
+### Changed
+- ship collision feel tuned to reduce pinball-like asteroid impacts
+- outer asteroid contact now preserves more tangential movement for smoother scrape behavior
+- head-on flight impacts now use a controlled rebound instead of pure stick-to-surface stopping
+- `Ship` collision baseline adjusted through inspector-driven tuning for faster iteration
+
+### Fixed
+- flight collisions no longer rely on pure stop/stick behavior during frontal asteroid contact
+- side contact now behaves more like sliding along the asteroid surface instead of chaotic bounce
+
+
 ## [0.0.16] - Test Asteroid
 
 ### Added

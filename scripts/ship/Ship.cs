@@ -30,6 +30,8 @@ public partial class Ship : CharacterBody2D
     public float CurrentSpeedMps => Velocity.Length();
     public bool IsArcadeMode => _isArcadeMode;
 
+    private float _flightBounceCooldownTimer = 0.0f;
+
     public override void _Ready()
     {
         _sprite = GetNode<Sprite2D>("Sprite2D");
@@ -56,36 +58,36 @@ public partial class Ship : CharacterBody2D
     }
 
     public override void _PhysicsProcess(double delta)
+{
+    if (Config == null)
+        return;
+
+    float dt = (float)delta;
+    _flightBounceCooldownTimer = Mathf.Max(0.0f, _flightBounceCooldownTimer - dt);
+
+    if (Input.IsActionJustPressed(ACTION_TOGGLE_FLIGHT_MODE))
     {
-        if (Config == null)
-            return;
+        _isArcadeMode = !_isArcadeMode;
 
-        float dt = (float)delta;
-
-        if (Input.IsActionJustPressed(ACTION_TOGGLE_FLIGHT_MODE))
+        if (DebugEnabled)
         {
-            _isArcadeMode = !_isArcadeMode;
-
-            if (DebugEnabled)
-            {
-                GD.Print(_isArcadeMode ? "Flight mode: ARCADE" : "Flight mode: REALISTIC");
-            }
+            GD.Print(_isArcadeMode ? "Flight mode: ARCADE" : "Flight mode: REALISTIC");
         }
+    }
 
-        Vector2 desiredInput = GetDesiredInputVector();
-        bool hasDesiredDirection = desiredInput != Vector2.Zero;
-        bool fullStopPressed = Input.IsActionPressed(ACTION_FULL_STOP);
+    Vector2 desiredInput = GetDesiredInputVector();
+    bool hasDesiredDirection = desiredInput != Vector2.Zero;
+    bool fullStopPressed = Input.IsActionPressed(ACTION_FULL_STOP);
 
-        bool thrustActive = false;
+    bool thrustActive = false;
 
-        if (fullStopPressed)
-        {
-            Velocity = Velocity.MoveToward(Vector2.Zero, Config.FullStopDecelerationMps2 * dt);
-            SetThrustVisual(false);
-            MoveAndSlide();
-            return;
-        }
-
+    if (fullStopPressed)
+    {
+        Velocity = Velocity.MoveToward(Vector2.Zero, Config.FullStopDecelerationMps2 * dt);
+        SetThrustVisual(false);
+    }
+    else
+    {
         if (hasDesiredDirection)
         {
             float targetRotation = desiredInput.Angle();
@@ -111,10 +113,13 @@ public partial class Ship : CharacterBody2D
         }
 
         Velocity = Velocity.LimitLength(Config.MaxSpeedMps);
-
         SetThrustVisual(thrustActive);
-        MoveAndSlide();
     }
+
+    Vector2 velocityBeforeMove = Velocity;
+    MoveAndSlide();
+    ApplyCollisionDamping(velocityBeforeMove);
+}
 
     private Vector2 GetDesiredInputVector()
     {
@@ -195,4 +200,75 @@ public partial class Ship : CharacterBody2D
             _sprite.Texture = IdleTexture;
         }
     }
+
+    private void ApplyCollisionDamping(Vector2 velocityBeforeMove)
+{
+    int collisionCount = GetSlideCollisionCount();
+    if (collisionCount == 0)
+        return;
+
+    float strongestImpactSpeed = 0.0f;
+    Vector2 strongestNormal = Vector2.Zero;
+
+    for (int i = 0; i < collisionCount; i++)
+    {
+        KinematicCollision2D collision = GetSlideCollision(i);
+        Vector2 normal = collision.GetNormal().Normalized();
+
+        // koľko rýchlosti išlo proti stene
+        float impactSpeed = Mathf.Max(0.0f, -velocityBeforeMove.Dot(normal));
+
+        if (impactSpeed > strongestImpactSpeed)
+        {
+            strongestImpactSpeed = impactSpeed;
+            strongestNormal = normal;
+        }
+    }
+
+    if (strongestImpactSpeed <= 0.0f)
+        return;
+
+    // Rozklad rýchlosti na časť do normály a časť po povrchu.
+    float normalDot = velocityBeforeMove.Dot(strongestNormal);
+    Vector2 normalComponent = strongestNormal * normalDot;
+    Vector2 tangentComponent = velocityBeforeMove - normalComponent;
+
+    // Základ pre side/scrape feel.
+    Vector2 resultVelocity = tangentComponent * Config.ImpactTangentPreserve;
+
+    if (strongestImpactSpeed >= Config.CrashSpeedThresholdMps)
+    {
+        resultVelocity *= (1.0f - Config.CrashExtraDamping);
+    }
+
+    // Ako veľmi bol náraz "čelný".
+    float impactAlignment = 0.0f;
+    if (velocityBeforeMove.LengthSquared() > 0.0001f)
+    {
+        impactAlignment = Mathf.Max(
+            0.0f,
+            -velocityBeforeMove.Normalized().Dot(strongestNormal)
+        );
+    }
+
+    bool isHeadOn =
+        impactAlignment >= Config.FlightHeadOnDotThreshold &&
+        strongestImpactSpeed >= Config.FlightBounceMinImpactSpeedMps;
+
+    if (isHeadOn && _flightBounceCooldownTimer <= 0.0f)
+    {
+        // Malý kontrolovaný rebound iba pre flight baseline.
+        Vector2 bounceVelocity = velocityBeforeMove.Bounce(strongestNormal) * Config.FlightBounceMultiplier;
+
+        // Zober silnejšiu z možností, aby head-on nepôsobil ako úplné zapichnutie.
+        if (bounceVelocity.Length() > resultVelocity.Length())
+        {
+            resultVelocity = bounceVelocity;
+        }
+
+        _flightBounceCooldownTimer = Config.FlightBounceCooldownSec;
+    }
+
+    Velocity = resultVelocity;
+}
 }
