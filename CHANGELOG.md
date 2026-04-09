@@ -1,6 +1,30 @@
 # Changelog
 
 
+## [0.0.18] - Drill Detection Alpha
+
+### Added
+- forward drill detection from `DrillPoint`
+- drill safety speed check before target validation
+- drill target detection using raycast against world collision
+- conversion pipeline for drill targeting: `global hit -> to_local() -> local_to_map()`
+- `DrillTargetInfo` target data structure for detected drill hits
+- `DrillDetectDistancePx` config value in `ShipConfig`
+- central `Debug.cs` debug controller with section-based switches
+- drill detection console debug routed through central debug system
+
+### Changed
+- ship now evaluates drill targets directly from its own forward position instead of relying on scene-specific references
+- drill detection debug output is now cleaner and easier to toggle during development
+- debug flow was centralized for future systems instead of using local ad-hoc prints
+
+### Fixed
+- drill detection now correctly resolves target cells through the hit `TileMapLayer`
+- console spam from repeated drill detection messages is reduced through centralized debug handling
+
+### Removed
+- Nothing yet
+
 ## [0.0.17] - Flight Collision baseline
 
 ### Added

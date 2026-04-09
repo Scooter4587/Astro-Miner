@@ -15,6 +15,10 @@ run/main_scene="uid://ct2htir3eerq7"
 config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+Debug="*uid://bjhmorftgk5cv"
+
 [dotnet]
 
 project/assembly_name="Astro Miner"

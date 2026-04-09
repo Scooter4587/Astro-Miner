@@ -11,26 +11,32 @@ public partial class Ship : CharacterBody2D
     [Export] public float VisualScale { get; set; } = 0.20f;
     [Export] public bool FlipSpriteHorizontally { get; set; } = true;
 
-    [ExportGroup("Debug")]
-    [Export] public bool DebugEnabled { get; set; } = true;
-
     private const string ACTION_MOVE_LEFT = "move_left";
     private const string ACTION_MOVE_RIGHT = "move_right";
     private const string ACTION_MOVE_UP = "move_up";
     private const string ACTION_MOVE_DOWN = "move_down";
     private const string ACTION_FULL_STOP = "full_stop";
     private const string ACTION_TOGGLE_FLIGHT_MODE = "toggle_flight_mode";
+    private const string ACTION_DRILL_HOLD = "drill_hold";
 
     private Sprite2D _sprite;
     private Marker2D _drillPoint;
     private CollisionShape2D _collisionShape;
 
     private bool _isArcadeMode;
+    private float _flightBounceCooldownTimer = 0.0f;
 
     public float CurrentSpeedMps => Velocity.Length();
     public bool IsArcadeMode => _isArcadeMode;
 
-    private float _flightBounceCooldownTimer = 0.0f;
+    private struct DrillTargetInfo
+    {
+        public TileMapLayer Layer;
+        public Vector2 WorldHitPosition;
+        public Vector2 LocalHitPosition;
+        public Vector2I Cell;
+        public bool HasTile;
+    }
 
     public override void _Ready()
     {
@@ -51,75 +57,70 @@ public partial class Ship : CharacterBody2D
 
         _isArcadeMode = Config.StartInArcadeMode;
 
-        if (DebugEnabled)
-        {
-            GD.Print("Ship movement ready.");
-        }
+        Debug.LogShipGeneral("Ship movement ready.");
     }
 
     public override void _PhysicsProcess(double delta)
-{
-    if (Config == null)
-        return;
-
-    float dt = (float)delta;
-    _flightBounceCooldownTimer = Mathf.Max(0.0f, _flightBounceCooldownTimer - dt);
-
-    if (Input.IsActionJustPressed(ACTION_TOGGLE_FLIGHT_MODE))
     {
-        _isArcadeMode = !_isArcadeMode;
+        if (Config == null)
+            return;
 
-        if (DebugEnabled)
+        float dt = (float)delta;
+        _flightBounceCooldownTimer = Mathf.Max(0.0f, _flightBounceCooldownTimer - dt);
+
+        if (Input.IsActionJustPressed(ACTION_TOGGLE_FLIGHT_MODE))
         {
-            GD.Print(_isArcadeMode ? "Flight mode: ARCADE" : "Flight mode: REALISTIC");
+            _isArcadeMode = !_isArcadeMode;
+            Debug.LogShipGeneral(_isArcadeMode ? "Flight mode: ARCADE" : "Flight mode: REALISTIC");
         }
-    }
 
-    Vector2 desiredInput = GetDesiredInputVector();
-    bool hasDesiredDirection = desiredInput != Vector2.Zero;
-    bool fullStopPressed = Input.IsActionPressed(ACTION_FULL_STOP);
+        Vector2 desiredInput = GetDesiredInputVector();
+        bool hasDesiredDirection = desiredInput != Vector2.Zero;
+        bool fullStopPressed = Input.IsActionPressed(ACTION_FULL_STOP);
 
-    bool thrustActive = false;
+        bool thrustActive = false;
 
-    if (fullStopPressed)
-    {
-        Velocity = Velocity.MoveToward(Vector2.Zero, Config.FullStopDecelerationMps2 * dt);
-        SetThrustVisual(false);
-    }
-    else
-    {
-        if (hasDesiredDirection)
+        if (fullStopPressed)
         {
-            float targetRotation = desiredInput.Angle();
-            RotateTowards(targetRotation, dt);
-
-            if (_isArcadeMode)
+            Velocity = Velocity.MoveToward(Vector2.Zero, Config.FullStopDecelerationMps2 * dt);
+            SetThrustVisual(false);
+        }
+        else
+        {
+            if (hasDesiredDirection)
             {
-                thrustActive = Config.ArcadeContinuousThrust;
+                float targetRotation = desiredInput.Angle();
+                RotateTowards(targetRotation, dt);
+
+                if (_isArcadeMode)
+                {
+                    thrustActive = Config.ArcadeContinuousThrust;
+                }
+                else
+                {
+                    // Realistic mode:
+                    // počas otáčania nespomaľujeme umelo, loď len driftuje zotrvačnosťou
+                    // a main engine sa zapne až po dorovnaní na želaný smer
+                    thrustActive = !Config.RealisticRequiresAlignment || IsAlignedTo(targetRotation);
+                }
             }
-            else
+
+            if (thrustActive)
             {
-                // Realistic mode:
-                // počas otáčania nespomaľujeme umelo, loď len driftuje zotrvačnosťou
-                // a main engine sa zapne až po dorovnaní na želaný smer
-                thrustActive = !Config.RealisticRequiresAlignment || IsAlignedTo(targetRotation);
+                Vector2 forward = Vector2.Right.Rotated(Rotation);
+                Velocity += forward * Config.ThrustAccelerationMps2 * dt;
             }
+
+            Velocity = Velocity.LimitLength(Config.MaxSpeedMps);
+            SetThrustVisual(thrustActive);
         }
 
-        if (thrustActive)
-        {
-            Vector2 forward = Vector2.Right.Rotated(Rotation);
-            Velocity += forward * Config.ThrustAccelerationMps2 * dt;
-        }
+        Vector2 velocityBeforeMove = Velocity;
+        MoveAndSlide();
+        ApplyCollisionDamping(velocityBeforeMove);
 
-        Velocity = Velocity.LimitLength(Config.MaxSpeedMps);
-        SetThrustVisual(thrustActive);
+        HandleDrillDetectionDebug();
     }
-
-    Vector2 velocityBeforeMove = Velocity;
-    MoveAndSlide();
-    ApplyCollisionDamping(velocityBeforeMove);
-}
 
     private Vector2 GetDesiredInputVector()
     {
@@ -202,73 +203,171 @@ public partial class Ship : CharacterBody2D
     }
 
     private void ApplyCollisionDamping(Vector2 velocityBeforeMove)
-{
-    int collisionCount = GetSlideCollisionCount();
-    if (collisionCount == 0)
-        return;
-
-    float strongestImpactSpeed = 0.0f;
-    Vector2 strongestNormal = Vector2.Zero;
-
-    for (int i = 0; i < collisionCount; i++)
     {
-        KinematicCollision2D collision = GetSlideCollision(i);
-        Vector2 normal = collision.GetNormal().Normalized();
+        int collisionCount = GetSlideCollisionCount();
+        if (collisionCount == 0)
+            return;
 
-        // koľko rýchlosti išlo proti stene
-        float impactSpeed = Mathf.Max(0.0f, -velocityBeforeMove.Dot(normal));
+        float strongestImpactSpeed = 0.0f;
+        Vector2 strongestNormal = Vector2.Zero;
 
-        if (impactSpeed > strongestImpactSpeed)
+        for (int i = 0; i < collisionCount; i++)
         {
-            strongestImpactSpeed = impactSpeed;
-            strongestNormal = normal;
+            KinematicCollision2D collision = GetSlideCollision(i);
+            Vector2 normal = collision.GetNormal().Normalized();
+
+            // koľko rýchlosti išlo proti stene
+            float impactSpeed = Mathf.Max(0.0f, -velocityBeforeMove.Dot(normal));
+
+            if (impactSpeed > strongestImpactSpeed)
+            {
+                strongestImpactSpeed = impactSpeed;
+                strongestNormal = normal;
+            }
+        }
+
+        if (strongestImpactSpeed <= 0.0f)
+            return;
+
+        // Rozklad rýchlosti na časť do normály a časť po povrchu.
+        float normalDot = velocityBeforeMove.Dot(strongestNormal);
+        Vector2 normalComponent = strongestNormal * normalDot;
+        Vector2 tangentComponent = velocityBeforeMove - normalComponent;
+
+        // Základ pre side/scrape feel.
+        Vector2 resultVelocity = tangentComponent * Config.ImpactTangentPreserve;
+
+        if (strongestImpactSpeed >= Config.CrashSpeedThresholdMps)
+        {
+            resultVelocity *= (1.0f - Config.CrashExtraDamping);
+        }
+
+        // Ako veľmi bol náraz "čelný".
+        float impactAlignment = 0.0f;
+        if (velocityBeforeMove.LengthSquared() > 0.0001f)
+        {
+            impactAlignment = Mathf.Max(
+                0.0f,
+                -velocityBeforeMove.Normalized().Dot(strongestNormal)
+            );
+        }
+
+        bool isHeadOn =
+            impactAlignment >= Config.FlightHeadOnDotThreshold &&
+            strongestImpactSpeed >= Config.FlightBounceMinImpactSpeedMps;
+
+        if (isHeadOn && _flightBounceCooldownTimer <= 0.0f)
+        {
+            // Malý kontrolovaný rebound iba pre flight baseline.
+            Vector2 bounceVelocity = velocityBeforeMove.Bounce(strongestNormal) * Config.FlightBounceMultiplier;
+
+            // Zober silnejšiu z možností, aby head-on nepôsobil ako úplné zapichnutie.
+            if (bounceVelocity.Length() > resultVelocity.Length())
+            {
+                resultVelocity = bounceVelocity;
+            }
+
+            _flightBounceCooldownTimer = Config.FlightBounceCooldownSec;
+        }
+
+        Velocity = resultVelocity;
+    }
+
+    private void HandleDrillDetectionDebug()
+    {
+        if (!Input.IsActionPressed(ACTION_DRILL_HOLD))
+        {
+            Debug.ClearChannel("drill_detection");
+            return;
+        }
+
+        if (CurrentSpeedMps > Config.DrillSafeSpeedMps)
+        {
+            PrintDrillDebugMessage("DRILL | blocked: speed too high");
+            return;
+        }
+
+        if (TryGetDrillTarget(out DrillTargetInfo target))
+        {
+            PrintDrillDebugMessage(
+                $"DRILL | layer={target.Layer.Name} | world={target.WorldHitPosition} | local={target.LocalHitPosition} | cell={target.Cell} | has_tile={target.HasTile}"
+            );
+        }
+        else
+        {
+            PrintDrillDebugMessage("DRILL | no valid target");
         }
     }
 
-    if (strongestImpactSpeed <= 0.0f)
-        return;
-
-    // Rozklad rýchlosti na časť do normály a časť po povrchu.
-    float normalDot = velocityBeforeMove.Dot(strongestNormal);
-    Vector2 normalComponent = strongestNormal * normalDot;
-    Vector2 tangentComponent = velocityBeforeMove - normalComponent;
-
-    // Základ pre side/scrape feel.
-    Vector2 resultVelocity = tangentComponent * Config.ImpactTangentPreserve;
-
-    if (strongestImpactSpeed >= Config.CrashSpeedThresholdMps)
+    private void PrintDrillDebugMessage(string message)
     {
-        resultVelocity *= (1.0f - Config.CrashExtraDamping);
+        Debug.LogDrillDetection(message, dedupe: true);
     }
 
-    // Ako veľmi bol náraz "čelný".
-    float impactAlignment = 0.0f;
-    if (velocityBeforeMove.LengthSquared() > 0.0001f)
+    private bool TryGetDrillTarget(out DrillTargetInfo target)
     {
-        impactAlignment = Mathf.Max(
-            0.0f,
-            -velocityBeforeMove.Normalized().Dot(strongestNormal)
-        );
-    }
+        target = default;
 
-    bool isHeadOn =
-        impactAlignment >= Config.FlightHeadOnDotThreshold &&
-        strongestImpactSpeed >= Config.FlightBounceMinImpactSpeedMps;
+        if (_drillPoint == null || Config == null)
+            return false;
 
-    if (isHeadOn && _flightBounceCooldownTimer <= 0.0f)
-    {
-        // Malý kontrolovaný rebound iba pre flight baseline.
-        Vector2 bounceVelocity = velocityBeforeMove.Bounce(strongestNormal) * Config.FlightBounceMultiplier;
+        if (CurrentSpeedMps > Config.DrillSafeSpeedMps)
+            return false;
 
-        // Zober silnejšiu z možností, aby head-on nepôsobil ako úplné zapichnutie.
-        if (bounceVelocity.Length() > resultVelocity.Length())
+        Vector2 from = _drillPoint.GlobalPosition;
+        Vector2 to = from + Vector2.Right.Rotated(Rotation) * Config.DrillDetectDistancePx;
+
+        var exclude = new Godot.Collections.Array<Rid> { GetRid() };
+        var query = PhysicsRayQueryParameters2D.Create(from, to, CollisionMask, exclude);
+        query.CollideWithBodies = true;
+        query.CollideWithAreas = false;
+        query.HitFromInside = false;
+
+        var result = GetWorld2D().DirectSpaceState.IntersectRay(query);
+        if (result.Count == 0)
+            return false;
+
+        Rid hitRid = (Rid)result["rid"];
+        TileMapLayer layer = FindTileMapLayerByBodyRid(GetTree().CurrentScene, hitRid);
+
+        if (layer == null)
+            return false;
+
+        Vector2 worldHit = (Vector2)result["position"];
+        Vector2 localHit = layer.ToLocal(worldHit);
+        Vector2I cell = layer.LocalToMap(localHit);
+        bool hasTile = layer.GetCellSourceId(cell) != -1;
+
+        if (!hasTile)
+            return false;
+
+        target = new DrillTargetInfo
         {
-            resultVelocity = bounceVelocity;
+            Layer = layer,
+            WorldHitPosition = worldHit,
+            LocalHitPosition = localHit,
+            Cell = cell,
+            HasTile = true
+        };
+
+        return true;
+    }
+
+    private TileMapLayer FindTileMapLayerByBodyRid(Node root, Rid bodyRid)
+    {
+        if (root == null)
+            return null;
+
+        if (root is TileMapLayer layer && layer.HasBodyRid(bodyRid))
+            return layer;
+
+        foreach (Node child in root.GetChildren())
+        {
+            TileMapLayer found = FindTileMapLayerByBodyRid(child, bodyRid);
+            if (found != null)
+                return found;
         }
 
-        _flightBounceCooldownTimer = Config.FlightBounceCooldownSec;
+        return null;
     }
-
-    Velocity = resultVelocity;
-}
 }

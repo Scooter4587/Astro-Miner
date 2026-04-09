@@ -35,4 +35,7 @@ public partial class ShipConfig : Resource
     [Export] public float FlightBounceMultiplier { get; set; } = 0.45f;
     [Export] public float FlightBounceCooldownSec { get; set; } = 0.14f;
     [Export] public float FlightBounceMinImpactSpeedMps { get; set; } = 70.0f;
+
+    [ExportGroup("Drill")]
+    [Export] public float DrillDetectDistancePx { get; set; } = 18.0f;
 }
